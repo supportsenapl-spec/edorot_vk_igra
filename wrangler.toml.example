@@ -1,0 +1,10 @@
+name = "edorot-vk-worker"
+main = "vk-worker.js"
+compatibility_date = "2026-09-27"
+
+[vars]
+VK_APP_ID = "YOUR_VK_APP_ID"
+
+[[kv_namespaces]]
+binding = "LEADERBOARD"
+id = "YOUR_KV_NAMESPACE_ID"
