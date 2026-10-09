@@ -564,7 +564,7 @@
   #menuVolSlider{ flex:1; }
   .menuSupport{
     display:inline-block; font-family:var(--mono); font-size:11.5px; color:#5c5470;
-    text-decoration:none; border-bottom:1.5px dashed rgba(33,21,57,0.3);
+    text-decoration:none; border-bottom:1.5px dashed rgba(33,21,57,0.3); cursor:pointer;
   }
   .introBtnRow{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
   .introBtnRow button{ padding:12px 20px; }
@@ -706,7 +706,9 @@
         <span class="menuVolIcon" id="menuVolIcon">🔊</span>
         <input type="range" class="volRange" id="menuVolSlider" min="0" max="100" value="70" aria-label="Громкость">
       </div>
-      <a class="menuSupport" href="mailto:supportsenapl@gmail.com">✉️ Поддержка</a>
+      <!-- Support e-mail: mailto: links do not open inside the VK webview (net::ERR_UNKNOWN_URL_SCHEME),
+           so the address is shown as text and a tap copies it to the clipboard. -->
+      <a class="menuSupport" id="supportLink" href="#" role="button">✉️ supportsenapl@gmail.com</a>
     </div>
   </div>
 
@@ -867,6 +869,7 @@
   const shuffleBtn = $('shuffleBtn');
   const confettiLayer = $('confettiLayer');
   const celebrateToastEl = $('celebrateToast'), celebrateBig = $('celebrateBig'), celebrateSmall = $('celebrateSmall');
+  const supportLink = $('supportLink');
 
   const ROWS=6, COLS=5;
 
@@ -954,6 +957,8 @@
       shuffleFree: '🦖 +1 заряд Тряски (бесплатно)!',
       shareText: (emoji,name,score)=>`${emoji} Я слепил ${name} в ЕДОРОТ и набрал ${score} очков! Попробуй побить мой результат 🍌`,
       copied: 'Скопировано! Вставь куда хочешь 📋',
+      supportCopied: 'Почта поддержки скопирована 📋',
+      supportShow: e=>'Почта: '+e,
       shakeReward: '🦖 Награда: заряд Тряски', thanksWatch: '📺 Спасибо за просмотр! Заряд Тряски получен',
       adUnavailable: 'Реклама сейчас недоступна, попробуй позже',
       rareCatch: n=>'🏆 РЕДКИЙ УЛОВ: '+n+'!', newHybridToast: n=>'Новый гибрид: '+n+'!',
@@ -1206,6 +1211,26 @@
     try{ await window.storage.set('brainrot-volume', String(masterVolume), false); }catch(e){}
   });
   volSlider.addEventListener('change', ()=>{ beep(440,0.1,'sine',0.12); });
+
+  // ---- support e-mail ----
+  // mailto: does not open inside the VK webview (net::ERR_UNKNOWN_URL_SCHEME — moderation remark),
+  // so the address is shown as plain text and a tap copies it. VK's own copy method works inside
+  // the iframe; the browser clipboard is the fallback; if both fail, the address is shown in a toast.
+  const SUPPORT_EMAIL = 'supportsenapl@gmail.com';
+  if(supportLink){
+    supportLink.addEventListener('click', async (e)=>{
+      e.preventDefault();
+      let ok = false;
+      if(window.__isVKPlatform){
+        const r = await window.__vkSend('VKWebAppCopyText', { text: SUPPORT_EMAIL }, 3000);
+        ok = r !== null;
+      }
+      if(!ok){
+        try{ await navigator.clipboard.writeText(SUPPORT_EMAIL); ok = true; }catch(err){}
+      }
+      toast(ok ? S('supportCopied') : S('supportShow')(SUPPORT_EMAIL));
+    });
+  }
 
   async function loadVolume(){
     try{
