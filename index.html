@@ -1180,6 +1180,7 @@
   let returnToMenu = false;   // a sub-screen was opened FROM the menu, so closing it goes back
   let seenIntro = false;      // persisted: the how-to-play card is forced once, on a first launch
   function openMainMenu(){
+    if(dailyMode) submitDailyScore();
     introOverlay.classList.add('hidden');
     mainMenuOverlay.classList.remove('hidden');
     if(menuBestVal) menuBestVal.textContent = dailyMode ? challengeBest : best;
@@ -1904,7 +1905,7 @@
       // not get through is picked up by the next one rather than lost.
       const value = best;
       const r = await vkApi('/score', {
-        method:'POST',
+        method:'POST', keepalive:true, keepalive:true,
         headers:{'Content-Type':'application/json'},
         body:JSON.stringify({ name: playerName, score: value })
       });
@@ -1995,7 +1996,7 @@
       // The server stamps the date itself, so a result can never be filed against another day.
       const value = challengeBest;
       const r = await vkApi('/daily-score', {
-        method:'POST',
+        method:'POST', keepalive:true, // survives the page/tab being closed
         headers:{'Content-Type':'application/json'},
         body:JSON.stringify({ name: playerName, score: value })
       });
@@ -2007,7 +2008,7 @@
   async function submitDailyScoreThrottled(){
     if(sentDailyDate === todayISO() && challengeBest <= sentDailyBest) return;
     const now = Date.now();
-    if(now - lastDailySubmitAt < 60000) return;
+    if(now - lastDailySubmitAt < 20000) return;
     lastDailySubmitAt = now;
     await submitDailyScore();
   }
@@ -2080,6 +2081,7 @@
     saveRun();
   }
   function exitDaily(){
+    submitDailyScore(); // send the day's best before leaving the challenge, not up to 20s of it lost
     setGameplayActive(false);
     dailyMode = false;
     dailyRngFn = null;
@@ -2540,7 +2542,7 @@
   // previously only submitScore() ran here, which only pushes the leaderboard entry, not save().
   // Without this, a fresh best reached mid-run (no new hybrid unlocked since the last save) could
   // be lost if the player closes the tab before the next natural save point (unlock/game over).
-  window.addEventListener('pagehide', ()=>{ submitScore(); save(true); saveRun(); });
+  window.addEventListener('pagehide', ()=>{ submitScore(); if(dailyMode) submitDailyScore(); save(true); saveRun(); });
   document.addEventListener('visibilitychange', ()=>{
     if(document.visibilityState==='hidden'){
       submitScore();
@@ -2573,6 +2575,7 @@
         const type = e && e.detail && e.detail.type;
         if(type === 'VKWebAppViewHide'){
           submitScore();
+          if(dailyMode) submitDailyScore();
           save(true);
           saveRun();
           tabHidden = true;
