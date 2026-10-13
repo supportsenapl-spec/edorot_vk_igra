@@ -912,6 +912,20 @@
     'assets/hybrids/chili_unicorn.webp',
     'assets/hybrids/brainrot.webp',
   ];
+  // Preload every hybrid once at start: otherwise the art for a rarely reached creature is only
+  // downloaded the first time it appears on the board, and the cell sits empty until it arrives.
+  // The decoded images are kept in memory so later renders show them instantly.
+  const HYBRID_PRELOADED = [];
+  function preloadHybrids(){
+    HYBRID_IMG.forEach((src, i)=>{
+      const im = new Image();
+      im.decoding = 'async';
+      im.src = src;
+      if(im.decode) im.decode().catch(()=>{});
+      HYBRID_PRELOADED[i] = im;
+    });
+  }
+  preloadHybrids();
 
   // ---- one clean emoji per tier (reliable, pre-designed art) ----
   const EMOJI = ['🍌','🍕','🥑','🌮','🍦','🧀','🍩','🍔','🌵','🍉','🌶️','🌟'];
